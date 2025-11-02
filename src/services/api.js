@@ -1,78 +1,65 @@
 import axios from 'axios';
 
-// Backend API URL - your Node.js server
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Get API URL from environment variable or fallback to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-/**
- * Generate trip itinerary using Gemini AI
- * @param {Object} tripData - Trip details (destination, days, budget, travelers, interests)
- * @returns {Promise} - Returns the generated itinerary
- */
+console.log('🔗 API Base URL:', API_BASE_URL);
+
+// Create axios instance with base configuration
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 60000, // 60 seconds
+});
+
+// Generate trip itinerary
 export const generateTrip = async (tripData) => {
   try {
-    console.log('🚀 Sending request to backend:', tripData);
+    console.log('📡 Sending request to:', `${API_BASE_URL}/api/generate-trip`);
+    console.log('📝 Trip data:', tripData);
     
-    const response = await axios.post(`${API_BASE_URL}/generate-trip`, tripData);
+    const response = await api.post('/api/generate-trip', tripData);
     
     console.log('✅ Response received:', response.data);
     return response.data;
-    
   } catch (error) {
     console.error('❌ Error generating trip:', error);
-    
-    // More detailed error message
-    if (error.response) {
-      // Server responded with error
-      throw new Error(error.response.data.error || 'Failed to generate trip');
-    } else if (error.request) {
-      // No response from server
-      throw new Error('Backend server is not responding. Make sure it\'s running on http://localhost:5000');
-    } else {
-      // Other errors
-      throw new Error('Failed to generate trip: ' + error.message);
-    }
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
   }
 };
 
-/**
- * Get place autocomplete suggestions using Geoapify
- * @param {string} input - User's search input
- * @returns {Promise} - Returns place suggestions
- */
-export const getPlacesAutocomplete = async (input) => {
+// Fetch places autocomplete
+export const fetchPlaces = async (input) => {
   try {
-    if (!input || input.length < 2) {
-      return { features: [] }; // Return empty if input too short
-    }
+    console.log('🔍 Fetching places for:', input);
+    console.log('📡 Request URL:', `${API_BASE_URL}/api/places-autocomplete?input=${input}`);
     
-    console.log('🔍 Searching places for:', input);
-    
-    const response = await axios.get(`${API_BASE_URL}/places-autocomplete`, {
+    const response = await api.get('/api/places-autocomplete', {
       params: { input }
     });
     
     console.log('✅ Places found:', response.data);
     return response.data;
-    
   } catch (error) {
     console.error('❌ Error fetching places:', error);
-    
-    // Return empty results on error instead of throwing
-    return { features: [] };
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
   }
 };
 
-/**
- * Check if backend server is healthy and running
- * @returns {Promise} - Returns health status
- */
-export const checkBackendHealth = async () => {
+// Health check
+export const checkHealth = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/health`);
-    console.log('✅ Backend is healthy:', response.data);
+    const response = await api.get('/api/health');
+    console.log('✅ Backend health:', response.data);
     return response.data;
   } catch (error) {
     console.error('❌ Backend health check failed:', error);
-    throw new Error('Backend server is not running');
+    throw error;
   }
 };
+
+export default api
